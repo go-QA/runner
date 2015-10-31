@@ -1,4 +1,4 @@
-package goQA
+package runner
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 	//"log"
 	//"os"
 	//"io"
-	//"gitorious.org/goqa/goqa.git"
+	//"github.com/go-QA/logger"
+	"../logger"
 	//"runtime"
 	"time"
 )
@@ -58,7 +59,7 @@ func (mock *BuildMockMatch) FindMatches(buildInfo BuildInfo) []RunInfo {
 }
 
 type InternalBuildMatcher struct {
-	logger *GoQALog
+	m_log *logger.GoQALog
 	matcher Matcher
 	chnBuilds *chan InternalCommandInfo	
 	chnRunplans *CommandQueue
@@ -85,12 +86,12 @@ func (ibm *InternalBuildMatcher) CreatRunInfoMes(run RunInfo) InternalCommandInf
 						Data: []interface{}{run.Id, run.Name, run.LaunchType} }
 }
 
-func (ibm *InternalBuildMatcher) Init(iMatch Matcher, inChn *chan InternalCommandInfo, outChn *CommandQueue, chnExit chan int, logger *GoQALog) {
+func (ibm *InternalBuildMatcher) Init(iMatch Matcher, inChn *chan InternalCommandInfo, outChn *CommandQueue, chnExit chan int, log *logger.GoQALog) {
 	ibm.matcher = iMatch
 	ibm.chnBuilds = inChn
 	ibm.chnRunplans = outChn
 	ibm.chnExit = chnExit
-	ibm.logger = logger
+	ibm.m_log = log
 	ibm.isStopRequested = false
 }
 
@@ -108,7 +109,7 @@ func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandIn
 				*ibm.chnRunplans <- outMes
 				select {
 					case resv := <- outMes.ChnReturn:
-						ibm.logger.LogDebug("BuildMatcher resv = %s %s", CmdName(resv.Command), resv.Data[0].(string))
+						ibm.m_log.LogDebug("BuildMatcher resv = %s %s", CmdName(resv.Command), resv.Data[0].(string))
 					case <-time.After(time.Millisecond * MAX_WAIT_MATCH_RETURN):
 				}
 			}
@@ -117,7 +118,7 @@ func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandIn
 			nextMessage.ChnReturn <- GetMessageInfo(CMD_OK, "no runs matched")
 		}
 	} else {
-		ibm.logger.LogError("GetBuildInfo::%s", err)
+		ibm.m_log.LogError("GetBuildInfo::%s", err)
 		nextMessage.ChnReturn <- GetMessageInfo(CMD_OK, "Build match err", err.Error())
 	}
 }
@@ -136,11 +137,11 @@ func (ibm *InternalBuildMatcher) Run() {
 		}
 		ibm.onProcessEvents()
 	}
-	ibm.logger.LogDebug("Out of Main loop")
+	ibm.m_log.LogDebug("Out of Main loop")
 }
 
 func (ibm *InternalBuildMatcher) onProcessEvents() {
-	ibm.logger.LogDebug("Matcher Process Events")
+	ibm.m_log.LogDebug("Matcher Process Events")
 }
 
 

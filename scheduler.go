@@ -1,4 +1,4 @@
-package goQA
+package runner
 
 import (
 	//	"fmt"
@@ -6,7 +6,8 @@ import (
 	//"log"
 	//"os"
 	//"io"
-	//"gitorious.org/goqa/goqa.git"
+	//"github.com/go-QA/logger"
+	"../logger"
 	//"runtime"
 	"time"
 )
@@ -53,7 +54,7 @@ func (sc *SimpleSchedueHandler) SendRunplanInfo(runInfo *RunInfo) {
 	sc.chRunInfo <- runInfo
 }
 type RunplanRouter struct {
-	logger       *GoQALog
+	m_log       *logger.GoQALog
 	m_ScheduleHandler map[string]ScheduleHandler
 	chnRuns      chan RunInfo
 	chnExit      chan int
@@ -61,7 +62,7 @@ type RunplanRouter struct {
 
 func (r *RunplanRouter) AddScheduleHandler(name string, schedHandler ScheduleHandler) error {
 	r.m_ScheduleHandler[name] = schedHandler
-	r.logger.LogDebug("Adding Scedule Handler to Master scheduler '%s'", name)
+	r.m_log.LogDebug("Adding Scedule Handler to Master scheduler '%s'", name)
 	return nil
 }
 
@@ -90,16 +91,16 @@ func (r *RunplanRouter) Run() {
 	}()
 }
 
-func (r *RunplanRouter) Init(chnRunplanRouter chan RunInfo, chnExit chan int, logger *GoQALog) {
+func (r *RunplanRouter) Init(chnRunplanRouter chan RunInfo, chnExit chan int, log *logger.GoQALog) {
 	r.chnRuns = chnRunplanRouter
 	r.chnExit = chnExit
-	r.logger = logger
+	r.m_log = log
 	r.m_ScheduleHandler = make(map[string]ScheduleHandler)
 }
 
 func (r *RunplanRouter) getQualifiedScheduleHandler(runInfo RunInfo) ScheduleHandler {
 	for name, sched := range r.m_ScheduleHandler {
-		r.logger.LogDebug("Scheduler '%s' recieved run ID = %s", name, runInfo.Id)
+		r.m_log.LogDebug("Scheduler '%s' recieved run ID = %s", name, runInfo.Id)
 		return sched
 	}
 	return nil
@@ -114,7 +115,7 @@ type Scheduler interface {
 }
 
 type Schedule struct {
-	logger       *GoQALog
+	m_log       *logger.GoQALog
 	exitScheduler bool
 	m_runs        map[RunId]*RunPlan
 	chnRuns       chan *RunInfo
@@ -122,8 +123,8 @@ type Schedule struct {
 	name          string
 }
 
-func (sc *Schedule) Init(chnRunInfo chan *RunInfo, logger *GoQALog, name string) *Schedule {
-	sc.logger = logger
+func (sc *Schedule) Init(chnRunInfo chan *RunInfo, log *logger.GoQALog, name string) *Schedule {
+	sc.m_log = log
 	sc.name = name
 	sc.m_runs = make(map[RunId]*RunPlan)
 	sc.chnRuns = chnRunInfo
@@ -138,7 +139,7 @@ func (sc *Schedule) Start() {
 		for sc.exitScheduler == false {
 			select {
 				case runInfo := <-sc.chnRuns:
-					sc.logger.LogDebug("runplan '%s' running....", runInfo.Name)
+					sc.m_log.LogDebug("runplan '%s' running....", runInfo.Name)
 					if run, err := sc.getQualifiedRun(runInfo); err != nil {
 						sc.AddRun(run)
 						sc.launchRunplan(run.Id())
@@ -174,11 +175,11 @@ func (sc *Schedule) launchRunplan(id RunId) error {
 	}
 	status := run.GetStatus()
 	if status == RUN_STATUS_IDLE || status == RUN_STATUS_PAUSED {
-		sc.logger.LogDebug("launchRunplan:: Starting run '%s'", run.Name())
+		sc.m_log.LogDebug("launchRunplan:: Starting run '%s'", run.Name())
 		go run.Start()
 		
 	} else {
-		sc.logger.LogDebug("launchRunplan:: Run Not Launched. Status = %d", run.GetStatus())
+		sc.m_log.LogDebug("launchRunplan:: Run Not Launched. Status = %d", run.GetStatus())
 	}
 
 	return nil
@@ -190,13 +191,13 @@ func (sc *Schedule) Name() string {
 
 func (sc *Schedule) getQualifiedRun(runInfo *RunInfo) (*RunPlan, error) {
 	runplan := RunPlan{}
-	runplan.Init(runInfo, sc.logger)
+	runplan.Init(runInfo, sc.m_log)
 	return &runplan, nil
 }
 
 type RunPlan struct {
-	logger *GoQALog
-	m_testManager TestManager
+	m_log *logger.GoQALog
+	//m_testManager TestManager
 	info          RunInfo
 	Status        int
 }
@@ -209,8 +210,8 @@ func (rp *RunPlan) Id() RunId {
 	return rp.info.Id
 }
 
-func (rp *RunPlan) Init(runInfo *RunInfo, logger *GoQALog) {
-	rp.logger = logger
+func (rp *RunPlan) Init(runInfo *RunInfo, log *logger.GoQALog) {
+	rp.m_log = log
 	rp.info = *runInfo
 	rp.Status = RUN_STATUS_IDLE
 }
@@ -220,9 +221,9 @@ func (rp *RunPlan) Start() {
 	go func() {
 		for loop := 0; loop < 10; loop++ {
 			time.Sleep(time.Millisecond * 700)
-			rp.logger.LogDebug("Running runplan '%s'....", rp.Id())
+			rp.m_log.LogDebug("Running runplan '%s'....", rp.Id())
 		}
-		rp.logger.LogDebug("Runplan '%s' Complete", rp.info.Id)
+		rp.m_log.LogDebug("Runplan '%s' Complete", rp.info.Id)
 		rp.Status = RUN_STATUS_FINISHED
 	}()
 

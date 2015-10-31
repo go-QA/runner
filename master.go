@@ -1,4 +1,4 @@
-package goQA
+package runner
 
 import (
 	"fmt"
@@ -9,7 +9,8 @@ import (
 	"encoding/json"
 	"net"
 	"time"
-	//"../../goQA"
+	//"github.com/go-QA/logger"
+	"../logger"
 )
 
 // send messages
@@ -103,15 +104,15 @@ func (j *JSON_Encode) Unmarshal(data []byte) (CommandInfo, error) {
 }
 
 type MessageSender struct {
-	logger  *GoQALog
+	m_log  *logger.GoQALog
 	conn    net.Conn
 	Port    int
 	Address string
 	encoder CommandInfoEncoder
 }
 
-func (snd *MessageSender) Init(address string, port int, logger *GoQALog, encoder CommandInfoEncoder) {
-	snd.logger = logger
+func (snd *MessageSender) Init(address string, port int, log *logger.GoQALog, encoder CommandInfoEncoder) {
+	snd.m_log = log
 	snd.Address = address
 	snd.Port = port
 	snd.encoder = encoder
@@ -125,7 +126,7 @@ func (snd *MessageSender) Connect() error {
 	addr := fmt.Sprintf("%s:%d", snd.Address, snd.Port)
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		snd.logger.LogError("Error connecting to ....")
+		snd.m_log.LogError("Error connecting to ....")
 		return err
 	}
 	snd.conn = conn
@@ -147,23 +148,23 @@ func (snd *MessageSender) Send(command int, data ...interface{}) (CommandInfo, e
 	var err error
 
 	if err = snd.Connect(); err != nil {
-		snd.logger.LogError("Send()::ERROR:: %s", err)
+		snd.m_log.LogError("Send()::ERROR:: %s", err)
 		return CommandInfo{}, err
 	}
 	commandInfo := GetMessageInfo(command, data...)
 	sendData, err = snd.encoder.Marshal(commandInfo)
 	if err != nil {
-		snd.logger.LogError("Error: ", err)
+		snd.m_log.LogError("Error: ", err)
 	}
-	snd.logger.LogDebug("CLIENT Send data::%s", sendData)
+	snd.m_log.LogDebug("CLIENT Send data::%s", sendData)
 	fmt.Fprintf(snd.conn, string(sendData))
-	snd.logger.LogDebug("CLIENT RESVing....")
+	snd.m_log.LogDebug("CLIENT RESVing....")
 	status, err = bufio.NewReader(snd.conn).ReadString('\n')
 	if err != nil {
-		snd.logger.LogError("Error: ", err)
+		snd.m_log.LogError("Error: ", err)
 	}
 	rsvMessage, err = snd.encoder.Unmarshal([]byte(status))
-	snd.logger.LogDebug("CLIENT recieved::%s", status)
+	snd.m_log.LogDebug("CLIENT recieved::%s", status)
 	snd.conn.Close()
 	snd.conn = nil
 	return rsvMessage, nil
@@ -179,7 +180,7 @@ func (rcv *MessageReciever) Connect(address string, port int) {
 type CommandQueue chan InternalCommandInfo
 
 type Master struct {
-	logger             *GoQALog
+	m_log             *logger.GoQALog
 	chnExit            chan int
 	m_runplanRouter    RunplanRouter
 	chnRunplanRouter chan RunInfo
@@ -188,36 +189,36 @@ type Master struct {
 	m_commandQueue     *CommandQueue
 }
 
-// convenience methods to call the logger methods
+// convenience methods to call the m_log methods
 
 func (m *Master) SetDebug(mode bool) {
-	m.logger.SetDebug(mode)
+	m.m_log.SetDebug(mode)
 }
 
 func (m *Master) LogError(errMsg string, args ...interface{}) {
-	m.logger.LogError(errMsg, args...)
+	m.m_log.LogError(errMsg, args...)
 }
 
 func (m *Master) LogDebug(debugMsg string, args ...interface{}) {
-	m.logger.LogDebug(debugMsg, args...)
+	m.m_log.LogDebug(debugMsg, args...)
 }
 
 func (m *Master) LogWarning(warnMsg string, args ...interface{}) {
-	m.logger.LogWarning(warnMsg, args...)
+	m.m_log.LogWarning(warnMsg, args...)
 }
 
 func (m *Master) LogMessage(msg string, args ...interface{}) {
-	m.logger.LogMessage(msg, args...)
+	m.m_log.LogMessage(msg, args...)
 }
 
-func (m *Master) Init(connector RemoteConnector, commandQueue *CommandQueue, chnExit chan int, logger *GoQALog) *Master {
+func (m *Master) Init(connector RemoteConnector, commandQueue *CommandQueue, chnExit chan int, log *logger.GoQALog) *Master {
 	m.m_commandQueue = commandQueue
 	m.m_runQueue = make(chan RunInfo, 100)
 	m.chnExit = chnExit
-	m.logger = logger
+	m.m_log = log
 	m.chnRunplanRouter = make(chan RunInfo)
 	m.StartMasterScheduler()
-	go RunListener(connector, commandQueue, chnExit, logger)
+	go RunListener(connector, commandQueue, chnExit, log)
 	return m
 }
 func (m *Master) Stop(message int) bool {
@@ -270,11 +271,11 @@ func (m *Master) onProcessEvents() {
 func (m *Master) StartMasterScheduler() error {
 	m.LogDebug("MASTER:Creating scheduler....")
 	m.m_runplanRouter = RunplanRouter{}
-	m.m_runplanRouter.Init(m.chnRunplanRouter, m.chnExit, m.logger)
+	m.m_runplanRouter.Init(m.chnRunplanRouter, m.chnExit, m.m_log)
 
 	chnScheduler := make(chan *RunInfo)
 	sched := Schedule{}
-	sched.Init(chnScheduler, m.logger, "Default Scheduler")
+	sched.Init(chnScheduler, m.m_log, "Default Scheduler")
 	sched.Start()
 	schedHandler := SimpleSchedueHandler{}
 	schedHandler.Init(chnScheduler)
