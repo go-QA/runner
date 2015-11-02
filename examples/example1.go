@@ -67,7 +67,7 @@ func main() {
 	log := logger.GoQALog{}
 	log.Init()
 	log.Add("default", logger.LOGLEVEL_ALL, os.Stdout)
-	log.SetDebug(true)
+	//log.SetDebug(true)
 
 	messageListener := runner.TCPConnector{}
 	messageListener.Init(&log, &runner.JSON_Encode{}, MES_ADDRESS, MES_PORT)
@@ -77,7 +77,7 @@ func main() {
 	MockMatch := runner.BuildMockMatch{}
 	chnBuildIn := make(chan runner.InternalCommandInfo)
 	BuildMatcher := runner.InternalBuildMatcher{}
-	BuildMatcher.Init(&MockMatch, &chnBuildIn, &commandQueue, chnExit, &log)
+	BuildMatcher.Init(&MockMatch, chnBuildIn, &commandQueue, chnExit, &log)
 
 	master := runner.Master{}
 	master.Init(&listener, &commandQueue, chnExit, &log)

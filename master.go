@@ -279,7 +279,7 @@ func (m *Master) StartMasterScheduler() error {
 	sched.Start()
 	schedHandler := SimpleSchedueHandler{}
 	schedHandler.Init(chnScheduler)
-	m.m_runplanRouter.AddScheduleHandler("Defult Schedule Handler", &schedHandler)
+	m.m_runplanRouter.AddScheduleHandler("Default Schedule Handler", &schedHandler)
 	m.m_runplanRouter.Run()
 	return nil
 }

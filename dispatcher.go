@@ -61,7 +61,7 @@ func (mock *BuildMockMatch) FindMatches(buildInfo BuildInfo) []RunInfo {
 type InternalBuildMatcher struct {
 	m_log *logger.GoQALog
 	matcher Matcher
-	chnBuilds *chan InternalCommandInfo	
+	chnBuilds chan InternalCommandInfo	
 	chnRunplans *CommandQueue
 	chnExit chan int
 	isStopRequested bool
@@ -86,7 +86,7 @@ func (ibm *InternalBuildMatcher) CreatRunInfoMes(run RunInfo) InternalCommandInf
 						Data: []interface{}{run.Id, run.Name, run.LaunchType} }
 }
 
-func (ibm *InternalBuildMatcher) Init(iMatch Matcher, inChn *chan InternalCommandInfo, outChn *CommandQueue, chnExit chan int, log *logger.GoQALog) {
+func (ibm *InternalBuildMatcher) Init(iMatch Matcher, inChn chan InternalCommandInfo, outChn *CommandQueue, chnExit chan int, log *logger.GoQALog) {
 	ibm.matcher = iMatch
 	ibm.chnBuilds = inChn
 	ibm.chnRunplans = outChn
@@ -129,8 +129,8 @@ func (ibm *InternalBuildMatcher) Run() {
 
 	for ibm.isStopRequested == false {
 		select {
-			case nextMessage := <-*ibm.chnBuilds:
-				ibm.OnMessageRecieved(nextMessage)
+			case nextMessage := <-ibm.chnBuilds:
+				go ibm.OnMessageRecieved(nextMessage)
 			case  exitMessage := <-ibm.chnExit:
 				ibm.isStopRequested = ibm.Stop(exitMessage)
 			case  <-time.After(time.Millisecond * LOOP_WAIT_TIMER):

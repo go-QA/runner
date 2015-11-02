@@ -15,13 +15,13 @@ import (
 
 //Listener interface used as a connector to external information.
 // The Start() is used to return a channel to pass information to 
-// am oject. The Listener recieves a return response 
+// an oject. The Listener recieves a return response 
 type Listener interface {
 
 	Init(log *logger.GoQALog, encoder CommandInfoEncoder, args ...interface{})
 	//The Start needs to return a pointer to an InternalCommandInfo object.
 	// Send data to the channel
-	// recieve the ddata that will be returned on the recieve channel of InternalCommandInfo
+	// recieve the data that will be returned on the recieve channel of InternalCommandInfo
 	Start(mesChan chan<- *InternalCommandInfo)  
 
 	//The Listener Will stop sending messages and not recieve anymore
@@ -41,7 +41,7 @@ type RemoteConnector interface {
 	Stop()
 }
 
-// TCPConnector is a concrete Listener that uses the goQA message protocal
+// TCPConnector is a concrete Listener that uses the encoder interface, CommandInfoEncoder,
 // to send and recieve messages over TCP/IP
 type TCPConnector struct {
 	m_log *logger.GoQALog
@@ -83,7 +83,7 @@ func (mes *TCPConnector) Start(mesChan chan<- *InternalCommandInfo) {
 		for {
 			mes.m_log.LogDebug("TCPConnector::Getting message::")
 			nextMessage, conn = mes.getNextMessage()
-			mes.m_log.LogDebug("TCPConnector::Mes got::%s", nextMessage.Command)
+			mes.m_log.LogDebug("TCPConnector::Mes got::%d", nextMessage.Command)
 			mesChan <- nextMessage
 			//retMessage := <-nextMessage.ChnReturn
 			go mes.returnMessage(nextMessage, conn)
@@ -142,7 +142,7 @@ func (mes *TCPConnector) Stop() {
 }
 
 
-//InternalConnector is a concrete object that takes a listener. It will read each
+//ExternalConnector is a concrete object that takes a listener. It will read each
 // message from InternalCommandInfo provided by listener and send the message to the 
 // CommandQueue. It then waits for the return massage and send back to listener.
 type ExternalConnector struct {
@@ -179,7 +179,7 @@ func (l *ExternalConnector) Run() {
 					isMessageRecieved = true
 					mesToSend = GetInternalMessageInfo(mesRecieved.Command, make(chan CommandInfo), mesRecieved.Data...)
 					*l.m_commandQueue <-mesToSend
-					l.m_log.LogDebug("Wait return...%s", &mesToSend.ChnReturn)
+					l.m_log.LogDebug("Wait return...%x", &mesToSend.ChnReturn)
 				case  <- time.After(time.Second * 10):
 					l.m_log.LogDebug("No message recieved for long time")
 			}

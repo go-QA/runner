@@ -62,7 +62,7 @@ type RunplanRouter struct {
 
 func (r *RunplanRouter) AddScheduleHandler(name string, schedHandler ScheduleHandler) error {
 	r.m_ScheduleHandler[name] = schedHandler
-	r.m_log.LogDebug("Adding Scedule Handler to Master scheduler '%s'", name)
+	r.m_log.LogDebug("Adding Schedule Handler to Master scheduler '%s'", name)
 	return nil
 }
 
