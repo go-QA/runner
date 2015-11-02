@@ -187,7 +187,7 @@ func (l *ExternalConnector) Run() {
 		if isMessageRecieved == true {
 			select {
 				case returned := <- mesToSend.ChnReturn:
-					l.m_log.LogDebug("Listener resved %s %s", CmdName(returned.Command), returned.Data )
+					l.m_log.LogMessage("Listener resved %s %s", CmdName(returned.Command), returned.Data )
 					//err = messageListener.ReturnMessage(returned.Command, returned.Data...)
 					mesRecieved.ChnReturn <-GetMessageInfo(returned.Command, returned.Data...)
 					if err != nil {

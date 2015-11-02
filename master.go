@@ -252,10 +252,14 @@ func (m *Master) ProcessMessage(info *InternalCommandInfo) {
 
 	switch info.Command {
 	case CMD_LAUNCH_RUN:
-		m.LogMessage("launching runplan '%s'", info.Data[0])
+		m.LogMessage("MASTER::launching runplan '%s'", info.Data[0])
 		run := RunInfo{Id: info.Data[0].(RunId), Name: info.Data[1].(string), LaunchType: info.Data[2].(string)}
 		m.chnRunplanRouter <- run
 		mesRet := GetMessageInfo(CMD_OK, "Runplan launched", time.Now().String())
+		info.ChnReturn <- mesRet
+	case CMD_GET_RUN_STATUS:
+		m.LogMessage("MASTER:: %s %v %v", CmdName(info.Command), info.Data, &info.ChnReturn)
+		mesRet := GetMessageInfo(CMD_NO_COMMAND, "No Runlan status available")
 		info.ChnReturn <- mesRet
 	default:
 		m.LogMessage("MASTER::No Command -> %s %v %v", CmdName(info.Command), info.Data, &info.ChnReturn)

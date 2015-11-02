@@ -81,8 +81,8 @@ func (ibm *InternalBuildMatcher) GetBuildInfo(info InternalCommandInfo) (BuildIn
 	return buildInfo, err
 }
 
-func (ibm *InternalBuildMatcher) CreatRunInfoMes(run RunInfo) InternalCommandInfo {
-	return InternalCommandInfo{ Command: CMD_LAUNCH_RUN, ChnReturn: make(chan CommandInfo),
+func (ibm *InternalBuildMatcher) CreatRunInfoMes(run RunInfo) *InternalCommandInfo {
+	return &InternalCommandInfo{ Command: CMD_LAUNCH_RUN, ChnReturn: make(chan CommandInfo),
 						Data: []interface{}{run.Id, run.Name, run.LaunchType} }
 }
 
@@ -100,18 +100,21 @@ func (ibm *InternalBuildMatcher) Stop(mes int) bool {
 }
 
 func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandInfo)  {
+	var outMes *InternalCommandInfo
 	nextBuild, err := ibm.GetBuildInfo(nextMessage)
 	if err == nil {
 		newRunplans := ibm.matcher.FindMatches(nextBuild)
 		if newRunplans != nil {
 			for _, run := range newRunplans {
-				outMes := ibm.CreatRunInfoMes(run)
-				*ibm.chnRunplans <- outMes
-				select {
-					case resv := <- outMes.ChnReturn:
-						ibm.m_log.LogDebug("BuildMatcher resv = %s %s", CmdName(resv.Command), resv.Data[0].(string))
-					case <-time.After(time.Millisecond * MAX_WAIT_MATCH_RETURN):
-				}
+				outMes = ibm.CreatRunInfoMes(run)
+				*ibm.chnRunplans <- *outMes
+				go func(*InternalCommandInfo) {
+					select {
+						case resv := <- (*outMes).ChnReturn:
+							ibm.m_log.LogMessage("BuildMatcher resv = %s %s", CmdName(resv.Command), resv.Data[0].(string))
+						case <-time.After(time.Millisecond * MAX_WAIT_MATCH_RETURN):
+					}
+					}(outMes)
 			}
 			nextMessage.ChnReturn <- GetMessageInfo(CMD_OK, fmt.Sprintf("launched %d runs", len(newRunplans)))
 		} else {

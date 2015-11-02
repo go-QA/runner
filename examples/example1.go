@@ -53,7 +53,7 @@ func BuildRun(chnBuild chan runner.InternalCommandInfo, log *logger.GoQALog) {
 		chnBuild <- buildInfo
 		go func(chnRet chan runner.CommandInfo) {
 			ret := <- chnRet
-			log.LogDebug("ClientRun::%s %s", runner.CmdName(ret.Command), ret.Data[0])
+			log.LogMessage("ClientRun::%s %s", runner.CmdName(ret.Command), ret.Data[0])
 			}(buildInfo.ChnReturn)
 	}
 }
