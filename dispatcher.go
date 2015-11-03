@@ -6,8 +6,8 @@ import (
 	//"log"
 	//"os"
 	//"io"
-	//"github.com/go-QA/logger"
-	"../logger"
+	"github.com/go-QA/logger"
+	//"../logger"
 	//"runtime"
 	"time"
 )

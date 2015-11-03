@@ -9,8 +9,8 @@ import (
 	"time"
 	"net"
 	//"bufio"
-	//"github.com/go-QA/logger"
-	"../logger"
+	"github.com/go-QA/logger"
+	//"../logger"
 )
 
 //Listener interface used as a connector to external information.
