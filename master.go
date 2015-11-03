@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"net"
 	"time"
-	//"github.com/go-QA/logger"
-	"../logger"
+	"github.com/go-QA/logger"
+	//"../logger"
 )
 
 // send messages
