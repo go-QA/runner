@@ -144,7 +144,7 @@ func (sc *Schedule) Start() {
 						sc.AddRun(run)
 						sc.launchRunplan(run.Id())
 					}
-				case <-time.After(time.Millisecond * 1000):
+				//case <-time.After(time.Millisecond * 1000):
 			}
 			sc.onProcessEvents()
 		}
@@ -158,7 +158,7 @@ func (sc *Schedule) onProcessEvents() {
 		}
 		
 	}
-	time.Sleep(time.Millisecond * LAUNCH_DELAY)
+	//time.Sleep(time.Millisecond * LAUNCH_DELAY)
 }
 
 func (sc *Schedule) AddRun(run *RunPlan) error {

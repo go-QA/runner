@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	MAX_WAIT_MATCH_RETURN = 10000 // Maximum time in milliseconds to wait for build return message
+	MAX_WAIT_MATCH_RETURN = 3000 // Maximum time in milliseconds to wait for build return message
 )
 
 type RunId int
@@ -81,9 +81,12 @@ func (ibm *InternalBuildMatcher) GetBuildInfo(info InternalCommandInfo) (BuildIn
 	return buildInfo, err
 }
 
-func (ibm *InternalBuildMatcher) CreatRunInfoMes(run RunInfo) *InternalCommandInfo {
-	return &InternalCommandInfo{ Command: CMD_LAUNCH_RUN, ChnReturn: make(chan CommandInfo),
-						Data: []interface{}{run.Id, run.Name, run.LaunchType} }
+func (ibm *InternalBuildMatcher) CreatRunInfoMes(cmd *InternalCommandInfo, run RunInfo)  {
+	//cmd := new(InternalCommandInfo)
+	cmd.Command = CMD_LAUNCH_RUN
+	cmd.ChnReturn = make(chan CommandInfo)
+	cmd.Data =  []interface{}{run.Id, run.Name, run.LaunchType} 
+	return
 }
 
 func (ibm *InternalBuildMatcher) Init(iMatch Matcher, inChn chan InternalCommandInfo, outChn *CommandQueue, chnExit chan int, log *logger.GoQALog) {
@@ -106,15 +109,18 @@ func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandIn
 		newRunplans := ibm.matcher.FindMatches(nextBuild)
 		if newRunplans != nil {
 			for _, run := range newRunplans {
-				outMes = ibm.CreatRunInfoMes(run)
+				outMes = new(InternalCommandInfo)
+				//ibm.m_log.LogMessage("BuildMatcher mesOut = %p", outMes)
+				ibm.CreatRunInfoMes(outMes, run)
 				*ibm.chnRunplans <- *outMes
-				go func(*InternalCommandInfo) {
+				go func(mes *InternalCommandInfo) {
 					select {
-						case resv := <- (*outMes).ChnReturn:
-							ibm.m_log.LogMessage("BuildMatcher resv = %s %s", CmdName(resv.Command), resv.Data[0].(string))
+						case resv := <- (*mes).ChnReturn:
+							ibm.m_log.LogMessage("BuildMatcher resv = %s %s %p", CmdName(resv.Command), resv.Data[0].(string), mes)
 						case <-time.After(time.Millisecond * MAX_WAIT_MATCH_RETURN):
+							ibm.m_log.LogMessage("BuildMatcher Timed out  %v %p", mes, mes)
 					}
-					}(outMes)
+				}(outMes)
 			}
 			nextMessage.ChnReturn <- GetMessageInfo(CMD_OK, fmt.Sprintf("launched %d runs", len(newRunplans)))
 		} else {
