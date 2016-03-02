@@ -16,15 +16,15 @@ import (
 )
 
 const (
-	CLENT_DELAY1 = 1000
-	CLENT_DELAY2 = 1000	
+	CLENT_DELAY1  = 1000
+	CLENT_DELAY2  = 1000
 	BUILDER_COUNT = 3
 	MESSAGE_COUNT = 2
 )
 
 const (
 	MES_ADDRESS = "localhost"
-	MES_PORT = 1414
+	MES_PORT    = 1414
 )
 
 func GetStatusRun(log *logger.GoQALog) {
@@ -39,25 +39,24 @@ func GetStatusRun(log *logger.GoQALog) {
 		} else {
 			log.LogDebug("CLIENT RCV ERROR::: ", err)
 		}
-		
+
 	}
 }
 
 func BuildRun(chnBuild chan runner.InternalCommandInfo, log *logger.GoQALog) {
 	var buildInfo runner.InternalCommandInfo
 	verNum := 1
-	for {		
+	for {
 		time.Sleep(time.Millisecond * CLENT_DELAY1)
 		buildInfo = runner.GetInternalMessageInfo(runner.CMD_NEW_BUILD, make(chan runner.CommandInfo), fmt.Sprintf("T1.0_%d", verNum), "Fun", "~/projects/fun", time.Now().String())
 		verNum++
 		chnBuild <- buildInfo
 		go func(chnRet chan runner.CommandInfo) {
-			ret := <- chnRet
+			ret := <-chnRet
 			log.LogMessage("ClientRun::%s %s", runner.CmdName(ret.Command), ret.Data[0])
-			}(buildInfo.ChnReturn)
+		}(buildInfo.ChnReturn)
 	}
 }
-
 
 func main() {
 
@@ -66,7 +65,7 @@ func main() {
 	commandQueue := make(runner.CommandQueue, 100)
 	log := logger.GoQALog{}
 	log.Init()
-	log.Add("default", logger.LOGLEVEL_ALL, os.Stdout)
+	log.Add("default", logger.LOG_LEVEL_ALL, os.Stdout)
 	//log.SetDebug(true)
 
 	messageListener := runner.TCPConnector{}
