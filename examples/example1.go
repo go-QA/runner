@@ -8,18 +8,19 @@ import (
 	//"io"
 	//"../../logger"
 	//"../../runner"
+	"time"
+
 	"github.com/go-QA/logger"
 	"github.com/go-QA/runner"
-	"time"
 	//"net"
 	//"encoding/json"
 )
 
 const (
-	CLENT_DELAY1  = 1000
-	CLENT_DELAY2  = 1000
-	BUILDER_COUNT = 3
-	MESSAGE_COUNT = 2
+	ClientDelay1 = 1000
+	ClientDelay2 = 1000
+	BuilderCount = 3
+	MessageCount = 2
 )
 
 const (
@@ -32,7 +33,7 @@ func GetStatusRun(log *logger.GoQALog) {
 	encoder := runner.JSON_Encode{}
 	sender.Init("localhost", 1414, log, &encoder)
 	for {
-		time.Sleep(time.Millisecond * CLENT_DELAY1)
+		time.Sleep(time.Millisecond * ClientDelay1)
 		rsvMessage, err := sender.Send(runner.CMD_GET_RUN_STATUS, "ALL")
 		if err == nil {
 			log.LogDebug("CLIENT RCV: %v\n", rsvMessage)
@@ -47,7 +48,7 @@ func BuildRun(chnBuild chan runner.InternalCommandInfo, log *logger.GoQALog) {
 	var buildInfo runner.InternalCommandInfo
 	verNum := 1
 	for {
-		time.Sleep(time.Millisecond * CLENT_DELAY1)
+		time.Sleep(time.Millisecond * ClientDelay1)
 		buildInfo = runner.GetInternalMessageInfo(runner.CMD_NEW_BUILD, make(chan runner.CommandInfo), fmt.Sprintf("T1.0_%d", verNum), "Fun", "~/projects/fun", time.Now().String())
 		verNum++
 		chnBuild <- buildInfo
@@ -65,7 +66,7 @@ func main() {
 	commandQueue := make(runner.CommandQueue, 100)
 	log := logger.GoQALog{}
 	log.Init()
-	log.Add("default", logger.LOG_LEVEL_ALL, os.Stdout)
+	log.Add("default", logger.LogLevelAll, os.Stdout)
 	//log.SetDebug(true)
 
 	messageListener := runner.TCPConnector{}
@@ -86,11 +87,11 @@ func main() {
 
 	go BuildMatcher.Run()
 	//time.Sleep(time.Second * 1)
-	for i := 0; i < BUILDER_COUNT; i++ {
+	for i := 0; i < BuilderCount; i++ {
 		go BuildRun(chnBuildIn, &log)
 		time.Sleep(time.Millisecond * 200)
 	}
-	for i := 0; i < MESSAGE_COUNT; i++ {
+	for i := 0; i < MessageCount; i++ {
 		go GetStatusRun(&log)
 		time.Sleep(time.Millisecond * 100)
 	}

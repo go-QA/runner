@@ -23,16 +23,15 @@ func (ri RunId) String() string {
 }
 
 type RunInfo struct {
-	Id RunId
-	Name string
+	Id         RunId
+	Name       string
 	LaunchType string
-
 }
 
 type BuildInfo struct {
-	Version string
-	Project string
-	Path string
+	Version       string
+	Project       string
+	Path          string
 	BuildComplete time.Time
 }
 
@@ -45,35 +44,35 @@ type BuildMockMatch struct {
 }
 
 func (mock *BuildMockMatch) FindMatches(buildInfo BuildInfo) []RunInfo {
-	return []RunInfo {
+	return []RunInfo{
 		{Id: mock.runNum,
-		Name: fmt.Sprintf("Runplan_%s", buildInfo.Version),
-		LaunchType: "auto"},
-		{Id: mock.runNum+1,
-		Name: fmt.Sprintf("Runplan_%s", buildInfo.Version),
-		LaunchType: "manual"},
-		{Id: mock.runNum+2,
-		Name: fmt.Sprintf("Runplan_%s", buildInfo.Version),
-		LaunchType: "auto"},
-	}	
+			Name:       fmt.Sprintf("Runplan_%d_%s", mock.runNum, buildInfo.Version),
+			LaunchType: "auto"},
+		{Id: mock.runNum + 1,
+			Name:       fmt.Sprintf("Runplan_%d_%s", mock.runNum+1, buildInfo.Version),
+			LaunchType: "manual"},
+		{Id: mock.runNum + 2,
+			Name:       fmt.Sprintf("Runplan_%d_%s", mock.runNum+2, buildInfo.Version),
+			LaunchType: "auto"},
+	}
 }
 
 type InternalBuildMatcher struct {
-	m_log *logger.GoQALog
-	matcher Matcher
-	chnBuilds chan InternalCommandInfo	
-	chnRunplans *CommandQueue
-	chnExit chan int
+	m_log           *logger.GoQALog
+	matcher         Matcher
+	chnBuilds       chan InternalCommandInfo
+	chnRunplans     *CommandQueue
+	chnExit         chan int
 	isStopRequested bool
 }
 
 func (ibm *InternalBuildMatcher) GetBuildInfo(info InternalCommandInfo) (BuildInfo, error) {
 	var buildInfo BuildInfo
-	var err error = nil
+	var err error
 	if info.Command == CMD_NEW_BUILD {
-		buildInfo = BuildInfo{ Version:info.Data[0].(string),
-								Project: info.Data[1].(string),
-								Path: info.Data[2].(string) }
+		buildInfo = BuildInfo{Version: info.Data[0].(string),
+			Project: info.Data[1].(string),
+			Path:    info.Data[2].(string)}
 	} else {
 		buildInfo = BuildInfo{}
 		err = &myError{mes: "No build info"}
@@ -81,11 +80,11 @@ func (ibm *InternalBuildMatcher) GetBuildInfo(info InternalCommandInfo) (BuildIn
 	return buildInfo, err
 }
 
-func (ibm *InternalBuildMatcher) CreatRunInfoMes(cmd *InternalCommandInfo, run RunInfo)  {
+func (ibm *InternalBuildMatcher) CreatRunInfoMes(cmd *InternalCommandInfo, run RunInfo) {
 	//cmd := new(InternalCommandInfo)
 	cmd.Command = CMD_LAUNCH_RUN
 	cmd.ChnReturn = make(chan CommandInfo)
-	cmd.Data =  []interface{}{run.Id, run.Name, run.LaunchType} 
+	cmd.Data = []interface{}{run.Id, run.Name, run.LaunchType}
 	return
 }
 
@@ -102,7 +101,7 @@ func (ibm *InternalBuildMatcher) Stop(mes int) bool {
 	return true
 }
 
-func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandInfo)  {
+func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandInfo) {
 	var outMes *InternalCommandInfo
 	nextBuild, err := ibm.GetBuildInfo(nextMessage)
 	if err == nil {
@@ -115,10 +114,10 @@ func (ibm *InternalBuildMatcher) OnMessageRecieved(nextMessage InternalCommandIn
 				*ibm.chnRunplans <- *outMes
 				go func(mes *InternalCommandInfo) {
 					select {
-						case resv := <- (*mes).ChnReturn:
-							ibm.m_log.LogMessage("BuildMatcher resv = %s %s %p", CmdName(resv.Command), resv.Data[0].(string), mes)
-						case <-time.After(time.Millisecond * MAX_WAIT_MATCH_RETURN):
-							ibm.m_log.LogMessage("BuildMatcher Timed out  %v %p", mes, mes)
+					case resv := <-(*mes).ChnReturn:
+						ibm.m_log.LogMessage("BuildMatcher resv = %s %s %p", CmdName(resv.Command), resv.Data[0].(string), mes)
+					case <-time.After(time.Millisecond * MAX_WAIT_MATCH_RETURN):
+						ibm.m_log.LogMessage("BuildMatcher Timed out  %v %p", mes, mes)
 					}
 				}(outMes)
 			}
@@ -138,11 +137,11 @@ func (ibm *InternalBuildMatcher) Run() {
 
 	for ibm.isStopRequested == false {
 		select {
-			case nextMessage := <-ibm.chnBuilds:
-				go ibm.OnMessageRecieved(nextMessage)
-			case  exitMessage := <-ibm.chnExit:
-				ibm.isStopRequested = ibm.Stop(exitMessage)
-			case  <-time.After(time.Millisecond * LOOP_WAIT_TIMER):
+		case nextMessage := <-ibm.chnBuilds:
+			go ibm.OnMessageRecieved(nextMessage)
+		case exitMessage := <-ibm.chnExit:
+			ibm.isStopRequested = ibm.Stop(exitMessage)
+		case <-time.After(time.Millisecond * LOOP_WAIT_TIMER):
 		}
 		ibm.onProcessEvents()
 	}
@@ -152,5 +151,3 @@ func (ibm *InternalBuildMatcher) Run() {
 func (ibm *InternalBuildMatcher) onProcessEvents() {
 	ibm.m_log.LogDebug("Matcher Process Events")
 }
-
-
